@@ -1,2 +1,33 @@
-% Time limit exceeded!
-=====UNKNOWN=====
+30 60
+28
+9 24 4 6 false 
+9 8 14 37 true 
+9 11 0 32 false 
+9 17 13 3 true 
+4 24 0 8 false 
+4 8 0 0 false 
+1 6 21 46 false 
+1 5 4 43 true 
+4 17 0 43 false 
+3 6 22 40 false 
+3 5 13 0 true 
+12 5 25 40 true 
+12 13 18 12 false 
+14 14 7 46 false 
+2 14 9 32 false 
+2 2 7 44 false 
+8 3 22 37 false 
+8 9 21 52 true 
+12 14 16 25 true 
+12 2 4 30 false 
+6 3 22 46 true 
+6 9 4 0 true 
+2 5 14 32 false 
+2 13 16 12 false 
+3 18 13 12 false 
+3 14 11 32 false 
+3 16 4 44 false 
+3 12 18 0 true 
+----------
+==========
+% [<UNKNOWN>]
