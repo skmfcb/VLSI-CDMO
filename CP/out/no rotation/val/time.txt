@@ -1,0 +1,16 @@
+No Rotation -
+
+Gecode,first_fail,indomain_main,luby
+11.415451612903226
+Gecode,input_order,indomain_main,luby
+17.733161290322577
+
+Chuffed,first_fail,im,free_search
+3.439230769230769
+Chuffed,input_order,im,free_search
+2.123794871794871
+
+
+Rotation
+
+
