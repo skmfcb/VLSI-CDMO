@@ -1,68 +1,7 @@
-import os
 import sys
 
 from z3 import *  
-import matplotlib.pyplot as plt
-
-
-def load_instance_from_file(filename):
-  with open(filename, 'r') as file:
-    instance_data = file.readlines()
-
-    w = int(instance_data[0])
-    n = int(instance_data[1])
-    
-    M = []
-    for line in instance_data[2:]:
-      row = list(map(int, line.split()))
-      M.append(row)
-
-    return w, n, M
-
-
-def write_file_output(solution, path):
-  f = open(path, "w+")
-  if not solution=={}:
-    f.write("{} {}\n".format(*solution['sizes_plate']))
-    f.write("{}\n".format(solution['n_circuits']))
-    for i in range(len(solution['pos_circuits'])):
-      f.write("{} {} {} {}\n".format(*solution['sizes_circuits'][i], *solution['pos_circuits'][i]))
-  f.close()
-  print("-"*40)
-
-
-def display_solution(solution, instance_index, folder):
-  fig, ax = plt.subplots()
-  ax.set_aspect('equal')
-  cmap = plt.colormaps['rainbow']
-  ax = plt.gca()
-  plt.title(f"Solution {instance_index}")
-  if len(solution['pos_circuits']) > 0:
-    for i in range(solution['n_circuits']):
-      rect = plt.Rectangle(solution['pos_circuits'][i], *solution['sizes_circuits'][i], edgecolor="#333", facecolor=cmap(i / (solution['n_circuits'] - 1)))
-      ax.add_patch(rect)
-  ax.set_xlim(0, solution['sizes_plate'][0])
-  ax.set_ylim(0, solution['sizes_plate'][1] + 1)
-  ax.set_xticks(range(solution['sizes_plate'][0] + 1))
-  ax.set_yticks(range(solution['sizes_plate'][1] + 1))
-  ax.set_xlabel('width_plate')
-  ax.set_ylabel('height_plate')
-  
-  if not os.path.exists(folder):
-    os.makedirs(folder)
-  plt.savefig(f"{folder}/solution_{instance_index}.png") 
-  #plt.show()
-  plt.close()
-
-
-def format_solution(W, N, H, X, Y, widths, heights):
-  solution = {}
-  solution['sizes_plate'] = (W, H) 
-  solution['n_circuits'] = N
-  solution['sizes_circuits'] = list(zip(widths, heights))
-  solution['pos_circuits'] = list(zip(X, Y))
-  return solution
-
+from utils.utils import format_solution, display_solution, write_file_output, write_file_times, load_instance_from_file
 
 def solve(W, N, M):
 
@@ -104,7 +43,6 @@ def solve(W, N, M):
     s.add(X[i] + w_real[i] <= W)
     s.add(Y[i] + h_real[i] <= H)
     s.add(H >= h_real[i])
-    
           
   # Objective    
   s.minimize(H)
@@ -122,9 +60,8 @@ def solve(W, N, M):
      print("UNSAT")
   elif check == unknown:
      print("UNKNOWN")
-  print("Computation time: ", s.statistics().time )
 
-  return solution
+  return solution, s.statistics().time
 
 
 def main(args):
@@ -132,6 +69,7 @@ def main(args):
   inst_folder = "../../Instances"
   sol_folder = "../out/rotation"
   img_folder = "../imgs/rotation"
+  times_folder = "../comp_times/rotation"
   START = 1 
   STOP = len([name for name in os.listdir(inst_folder) if os.path.isfile(os.path.join(inst_folder, name))])
 
@@ -140,16 +78,24 @@ def main(args):
   if len(args)>2 : sol_folder = args[2] 
   if len(args)>3 : START = int(args[3])
   if len(args)>4: STOP = int(args[4])
-
+  
+  computation_times = []
+  
   # Loop over instances
   for i in range(START, STOP+1):
     print(f"Running instance {i}")
     filename = f"{inst_folder}/ins-{i}.txt"
-    solution = solve(*load_instance_from_file(filename))
+    solution, time = solve(*load_instance_from_file(filename))
 
     write_file_output(solution, f"{sol_folder}/{i}.txt" )  
     if not solution == {}:
       display_solution(solution, f"{i}", img_folder)
+      computation_times.append(time)
+    else:
+      computation_times.append(0.0)
+    write_file_times(computation_times, times_folder)
+    print("Computation time: ", time )
+    print("-"*40)
 
   
 if __name__ == "__main__":

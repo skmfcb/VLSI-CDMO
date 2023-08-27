@@ -19,16 +19,17 @@ def solve(W, N, M):
     # Domain constraints
     s.add(X[i] >= 0, X[i] <= W - min(widths))
     s.add(Y[i] >= 0, Y[i] <= H - min(heights))
-    # Respect boundaries
+    # Constraints on plate boundaries
     s.add(X[i] + widths[i] <= W)
     s.add(Y[i] + heights[i] <= H)   
     for j in range(i+1, N):
-      # Non-overlapping     
+      # Non-overlapping constraints  
       s.add(Or(X[i] + widths[i] <= X[j], 
               X[j] + widths[j] <= X[i],
               Y[i] + heights[i] <= Y[j],  
               Y[j] + heights[j] <= Y[i]))
   
+  # H lower and upper bound
   s.add(H >= max(heights))
   s.add(H <= sum(heights))
           
