@@ -7,33 +7,70 @@ def solve(W, N, M):
   widths = [sub[0] for sub in M]
   heights = [sub[1] for sub in M]
 
-  # Decision variables
-  X = [Int('x_%s' % i) for i in range(N)]
-  Y = [Int('y_%s' % i) for i in range(N)]
-  H = Int('H') 
+  num_cells = W * max(heights)
+  X = [[Bool('x_%s_%s' % (i, j)) for j in range(W)] for i in range(num_cells)]
+  Y = [[Bool('y_%s_%s' % (i, j)) for j in range(W)] for i in range(num_cells)]
+  H = Int('H')
 
-  s = Optimize()
-  
-  # Constraints
+  s = Solver()
+
+  # Encode the constraints
   for i in range(N):
-    # Domain constraints
-    s.add(X[i] >= 0, X[i] <= W - min(widths))
-    s.add(Y[i] >= 0, Y[i] <= H - min(heights))
-    # Respect boundaries
-    s.add(X[i] + widths[i] <= W)
-    s.add(Y[i] + heights[i] <= H)   
-    for j in range(i+1, N):
-      # Non-overlapping     
-      s.add(Or(X[i] + widths[i] <= X[j], 
-              X[j] + widths[j] <= X[i],
-              Y[i] + heights[i] <= Y[j],  
-              Y[j] + heights[j] <= Y[i]))
-  
-  s.add(H >= max(heights))
-  s.add(H <= sum(heights))
-          
-  # Objective    
-  s.minimize(H)
+    for j in range(W - widths[i] + 1):
+      for k in range(max(heights)):
+        clause = []
+        for x in range(widths[i]):
+          for y in range(heights[i]):
+            clause.append(X[k + y][j + x])
+        s.add(Or(clause))
+
+  for i in range(N):
+    for j in range(max(heights) - heights[i] + 1):
+      for k in range(W):
+        clause = []
+        for x in range(widths[i]):
+          for y in range(heights[i]):
+            clause.append(Y[j + y][k + x])
+        s.add(Or(clause))
+
+  # Encode non-overlapping constraints
+  for i in range(N):
+    for j in range(i + 1, N):
+      for x in range(W):
+        for y in range(max(heights)):
+          s.add(Or(Not(X[y][x]), Not(X[y][x + widths[j]])))
+          s.add(Or(Not(X[y][x]), Not(X[y + heights[j]][x])))
+          s.add(Or(Not(X[y][x + widths[j]]), Not(X[y + heights[j]][x])))
+
+  lo = max(heights)  # Lower bound
+  hi = sum(heights)  # Upper bound
+
+  lo = max(heights)  # Lower bound
+  hi = sum(heights)  # Upper bound
+
+  optimal_max_height = None
+  while lo <= hi:
+      mid = (lo + hi) // 2
+      s.push()
+      
+      # Encode constraints and objective
+      # (Add your constraint and objective encodings here)
+
+      if s.check() == sat:
+          optimal_max_height = mid
+          hi = mid - 1
+      else:
+          lo = mid + 1
+
+      s.pop()  # Restore solver state
+
+  if optimal_max_height is not None:
+      print("Optimal maximum height:", optimal_max_height)
+      # Extract and print the solution
+      # (Add your solution extraction and printing here)
+  else:
+      print("No solution found")
+
   s.set(timeout=300000) # 5 minutes 
 
   solution = {}

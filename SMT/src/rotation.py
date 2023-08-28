@@ -42,7 +42,10 @@ def solve(W, N, M):
     # Contraints on boundaries
     s.add(X[i] + w_real[i] <= W)
     s.add(Y[i] + h_real[i] <= H)
-    s.add(H >= h_real[i])
+
+  # H lower and upper bounds
+  s.add(H >= sum([widths[i]*heights[i] for i in range(N)]) // W)
+  s.add(H <= sum([max(widths[i],heights[i]) for i in range(N)]))
           
   # Objective    
   s.minimize(H)

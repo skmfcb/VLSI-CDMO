@@ -30,7 +30,7 @@ def solve(W, N, M):
               Y[j] + heights[j] <= Y[i]))
   
   # H lower and upper bound
-  s.add(H >= max(heights))
+  s.add(H >= max(max(heights), sum([widths[i]*heights[i] for i in range(N)]) // W))
   s.add(H <= sum(heights))
           
   # Objective    
