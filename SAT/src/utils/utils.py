@@ -65,3 +65,6 @@ def format_solution(W, N, H, X, Y, widths, heights):
   solution['sizes_circuits'] = list(zip(widths, heights))
   solution['pos_circuits'] = list(zip(X, Y))
   return solution
+
+def timeout_handler(signum, frame):
+    raise TimeoutError("[*] ABORT - The solving has taken too long.")

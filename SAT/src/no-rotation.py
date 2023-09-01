@@ -1,92 +1,103 @@
 import sys
 from z3 import *  
-from utils.utils import format_solution, display_solution, write_file_output, write_file_times, load_instance_from_file
+import time
+import signal
+from utils.utils import format_solution, display_solution, write_file_output, write_file_times, load_instance_from_file, timeout_handler
 
 def solve(W, N, M):
 
+  best_solver = Solver()
+
   widths = [sub[0] for sub in M]
-  heights = [sub[1] for sub in M]
+  heights = [sub[1] for sub in M]             
 
-  num_cells = W * max(heights)
-  X = [[Bool('x_%s_%s' % (i, j)) for j in range(W)] for i in range(num_cells)]
-  Y = [[Bool('y_%s_%s' % (i, j)) for j in range(W)] for i in range(num_cells)]
-  H = Int('H')
-
-  s = Solver()
-
-  # Encode the constraints
-  for i in range(N):
-    for j in range(W - widths[i] + 1):
-      for k in range(max(heights)):
-        clause = []
-        for x in range(widths[i]):
-          for y in range(heights[i]):
-            clause.append(X[k + y][j + x])
-        s.add(Or(clause))
-
-  for i in range(N):
-    for j in range(max(heights) - heights[i] + 1):
-      for k in range(W):
-        clause = []
-        for x in range(widths[i]):
-          for y in range(heights[i]):
-            clause.append(Y[j + y][k + x])
-        s.add(Or(clause))
-
-  # Encode non-overlapping constraints
-  for i in range(N):
-    for j in range(i + 1, N):
-      for x in range(W):
-        for y in range(max(heights)):
-          s.add(Or(Not(X[y][x]), Not(X[y][x + widths[j]])))
-          s.add(Or(Not(X[y][x]), Not(X[y + heights[j]][x])))
-          s.add(Or(Not(X[y][x + widths[j]]), Not(X[y + heights[j]][x])))
-
-  lo = max(heights)  # Lower bound
-  hi = sum(heights)  # Upper bound
-
-  lo = max(heights)  # Lower bound
-  hi = sum(heights)  # Upper bound
+  low = sum([widths[i]*heights[i] for i in range(N)]) // W # Lower bound
+  high = sum(heights) # Upper bound
 
   optimal_max_height = None
-  while lo <= hi:
-      mid = (lo + hi) // 2
-      s.push()
+
+  for lo in range(low, high + 1):
+    print(lo)
+
+    solver = Solver()
+    
+    x_max = W - min(widths)
+    # x[i][v] means X[i] = v
+    X = [[Bool('x_%s_%s' %(i,v)) for v in range(x_max + 1)] for i in range(N)]
+
+    y_max = lo - min(heights)
+    # y[i][v] means Y[i] = v
+    Y = [[Bool('y_%s_%s' %(i,v)) for v in range(y_max + 1)] for i in range(N)]
+
+    # Constraints 
+    for i in range(N):
+      # At least one X[i][v] must be true
+      solver.add(Or([X[i][v] for v in range(len(X[i]))]))
+      # At least one Y[i][v] must be true
+      solver.add(Or([Y[i][v] for v in range(len(Y[i]))]))
       
-      # Encode constraints and objective
-      # (Add your constraint and objective encodings here)
+      # At most one X[i][v] can be true
+      for v1 in range(len(X[i])):
+        for v2 in range(v1+1, len(X[i])):
+          solver.add(Not(And(X[i][v1], X[i][v2])))
+      
+      # At most one Y[i][v] can be true
+      for v1 in range(len(Y[i])):
+        for v2 in range(v1+1, len(Y[i])):
+          solver.add(Not(And(Y[i][v1], Y[i][v2])))              
 
-      if s.check() == sat:
-          optimal_max_height = mid
-          hi = mid - 1
-      else:
-          lo = mid + 1
-
-      s.pop()  # Restore solver state
+      # Non-overlapping constraints
+      for i in range(N):
+        for j in range(i+1, N):
+          for v1 in range(len(X[i])):
+            for v2 in range(len(X[j])):
+              for v3 in range(len(Y[i])):
+                for v4 in range(len(Y[j])):
+                  solver.add(
+                    Implies(And(Y[i][v3], Y[j][v4], v3 == v4, X[i][v1], X[j][v2]),  
+                            And(v1 != v2, Or(v1 + widths[i] <= v2, v2 + widths[j] <= v1 )))
+                    )
+                  solver.add( 
+                    Implies(And(X[i][v1], X[j][v2], v1 == v2, Y[i][v3], Y[j][v4]),  
+                            And(v3 != v4, Or(v3 + heights[i] <= low, v4 + heights[j] <= low), Or(v3 + heights[i] <= v4, v4 + heights[j] <= v3 )))
+                    )
+                  solver.add( 
+                    Implies(And(X[i][v1], X[j][v2], v1 != v2, Y[i][v3], Y[j][v4], v3 != v4),  
+                            And(Or(v3 + heights[i] <= low, v4 + heights[j] <= low), Or(v3 + heights[i] <= v4, v4 + heights[j] <= v3 )))
+                    )
+              
+              
+    if solver.check() == sat:
+      optimal_max_height = lo
+      best_solver = solver
+      print("SAT")
+      print("Optimal height:", optimal_max_height)
+      
+      break
 
   if optimal_max_height is not None:
-      print("Optimal maximum height:", optimal_max_height)
-      # Extract and print the solution
-      # (Add your solution extraction and printing here)
+    
+    model = best_solver.model()
+    
+    x_vals = [-1 for _ in range(N)]
+    y_vals = [-1 for _ in range(N)]
+      
+    for i in range(N):
+      for v in range(len(X[i])):
+        if model.evaluate(X[i][v]):
+          x_vals[i] = v
+                
+      for v in range(len(Y[i])):
+        if model.evaluate(Y[i][v]):
+          y_vals[i] = v
+
+    solution = format_solution(W, N, optimal_max_height, x_vals, y_vals, widths, heights)
+    return solution
   else:
-      print("No solution found")
-
-  s.set(timeout=300000) # 5 minutes 
-
-  solution = {}
-  check = s.check()
-  if check == sat:  
-    print("SAT")
-    m = s.model()
-    x = [m.evaluate(X[i]).as_long() for i in range(N)]
-    y = [m.evaluate(Y[i]).as_long() for i in range(N)]
-    solution = format_solution(W, N, m.evaluate(H).as_long(), x, y, widths, heights)
-  elif check == unsat:
-     print("UNSAT")
-  elif check == unknown:
-     print("UNKNOWN")
-  return solution, s.statistics().time
-
+    print("UNSAT")
+    solution = {}
+    return solution
+  
 
 def main(args):
   # Default params
@@ -108,18 +119,25 @@ def main(args):
   # Loop over instances
   for i in range(START, STOP+1):
     print(f"Running instance {i}")
-    filename = f"{inst_folder}/ins-{i}.txt"
-    solution, time = solve(*load_instance_from_file(filename))
+
+    start_time = time.time()
+    solution = solve(*load_instance_from_file(f"{inst_folder}/ins-{i}.txt"))
+    comp_time = time.time() - start_time
+  
+    solution = {}
 
     write_file_output(solution, f"{sol_folder}/{i}.txt" )  
+    
     if not solution == {}:
       display_solution(solution, f"{i}", img_folder)
-      computation_times.append(time)
+      computation_times.append(comp_time)
     else:
       computation_times.append(0.0)
-    write_file_times(computation_times, times_folder)
-    print("Computation time: ", time )
+
+    print("Computation time: ", comp_time )
     print("-"*40)
+
+  write_file_times(computation_times, times_folder)
 
   
 if __name__ == "__main__":
