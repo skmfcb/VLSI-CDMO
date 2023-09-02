@@ -11,13 +11,12 @@ def solve(W, N, M):
   widths = [sub[0] for sub in M]
   heights = [sub[1] for sub in M]             
 
-  low = sum([widths[i]*heights[i] for i in range(N)]) // W # Lower bound
+  low = max(max(heights), math.ceil(sum([widths[i]*heights[i] for i in range(N)]) / W)) # Lower bound
   high = sum(heights) # Upper bound
 
   optimal_max_height = None
 
   for lo in range(low, high + 1):
-    print(lo)
 
     solver = Solver()
     
