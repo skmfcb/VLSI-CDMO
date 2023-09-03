@@ -203,7 +203,7 @@ def solver(w, n, x, y, rotation: bool, index_f, plot: bool):
         if plot:
             plot_solution(index_f, w, h_sol, n, x, y, x_sol, y_sol, False)
 
-    # Rest of the code for rotation case (not included for brevity)
+    # Similarly, Rest of the code for rotation case
 
 # Define the arguments within the notebook
 first_instance = 1
