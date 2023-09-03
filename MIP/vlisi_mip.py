@@ -206,7 +206,7 @@ def solver(w, n, x, y, rotation: bool, index_f, plot: bool):
     # Rest of the code for rotation case (not included for brevity)
 
 # Define the arguments within the notebook
-first_instance = 5
+first_instance = 1
 last_instance = 40
 allow_rotation = False
 plot_solution = True
