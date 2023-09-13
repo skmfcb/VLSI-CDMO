@@ -48,11 +48,10 @@ predicate symm_breaking_same(array[int] of var int: X, array[int] of var int: Y,
 
 
 % Compute the symmetry breaking w.r.t. the x or y axis. i.e. Reflection over x-axis and y-axis.
-predicate symm_breaking_axes() = 
-      let {
-            array[1..N] of var int: new_x = [W - X[i] - m[i] | i in 1..N];
-            array[1..N] of var int: new_y = [H - Y[i] - n[i] | i in 1..N]
-      } in lex_lesseq(X, new_x) /\ lex_lesseq(Y, new_y);
+predicate symm_breaking_axes(array[int] of var int: X, array[int] of var int: Y, array[int] of var int: m, array[int] of var int: n) =
+  forall(i in 1..N)(
+    (X[i] + m[i], Y[i] + n[i]) <= (W, H)
+  );
       
 %Both the predicates must hold true for the constraint to be satisfied.
 constraint symm_breaking_same(X,Y,m,n) /\ symm_breaking_axes();
